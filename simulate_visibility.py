@@ -271,7 +271,6 @@ def get_alm(skymap,lmax=4,dtheta=pi/nside,dphi=2*pi/nside):
 class Visibility_Simulator:
 	def __init__(self):
 		self.beamhealpix = None
-		self.numberofl = 0
 		self.Blm = np.zeros([3,3],'complex')
 		self.initial_zenith=np.array([45.336111/180.0*pi,0])     #at t=0, the position of zenith in equatorial coordinate
 
@@ -305,10 +304,10 @@ class Visibility_Simulator:
 			print float(time.time() - timer)/60
 		
 		#Sum over to calculate Bulm
-		Bulm={}
+		Bulm = np.zeros((L+1, 2*L+1), dtype = 'complex128')
+		jvec = [(1j**i) for i in range(L+L1+1)]
 		for l in range(L+1):
 			for mm in range(-l,l+1):
-				Bulm[(l,mm)]=0
 				for l1 in range(L1+1):
 					for mm1 in range(-l1,l1+1):
 						mm2=-(-mm+mm1)
@@ -316,18 +315,11 @@ class Visibility_Simulator:
 						wignerarray = wigner3jvec(l,l1,-mm,mm1)
 						l2min = max([abs(l-l1),abs(mm2)])
 						diff = max(abs(mm2)-abs(l-l1),0)
-						for l2 in range(l2min,l+l1+1):
-							#if self.Blm[(l1,mm1)] ==0 :
-								#Bulm[(l,mm)] += 0
-							#else:
-								#if l == 26 and mm == -26 and l1 == 5 and mm1 == -1:
-									#print 4*pi*(-1)**mm * (1j**l2)*sphjarray[l2]*spheharray[l2, mm2]*self.Blm[(l1,mm1)]*sqrtarray[l, l1, l2]*wignerarray0[diff+l2-l2min]*wignerarray[l2-l2min],
-									##print wigner3jvec(l,l1,0,0)
-									##print diff+l2-l2min, diff, l2, l2min
-									#print l2, mm2, (spheh(l2, mm2,ctos(d)[1],ctos(d)[2])).conjugate(), spheharray[l2, mm2]
-									#print l2, (1j**l2), sphjarray[l2], self.Blm[(l1,mm1)], spheharray[l2, mm2], sqrtarray[l, l1, l2], wignerarray0[diff+l2-l2min], (-1)**mm, wignerarray[l2-l2min]
-								Bulm[(l,mm)] += (1j**l2)*sphjarray[l2]*spheharray[l2, mm2]*self.Blm[(l1,mm1)]*sqrtarray[l, l1, l2]*wignerarray0[diff+l2-l2min]*wignerarray[l2-l2min]
-				Bulm[(l,mm)] = 4*pi*(-1)**mm * Bulm[(l,mm)]
+						#for l2 in range(l2min,l+l1+1):
+							#Bulm[l,mm] += (1j**l2)*sphjarray[l2]*spheharray[l2, mm2]*self.Blm[(l1,mm1)]*sqrtarray[l, l1, l2]*wignerarray0[diff+l2-l2min]*wignerarray[l2-l2min]
+						#jvec = [(1j**l2) for l2 in range(l2min,l+l1+1)]
+						Bulm[l,mm] += np.sum(jvec[l2min:l+l1+1]*sphjarray[l2min:l+l1+1]*spheharray[l2min:l+l1+1, mm2]*self.Blm[l1,mm1]*sqrtarray[l, l1, l2min:l+l1+1]*wignerarray0[diff:diff-l2min+l+l1+1]*wignerarray[:l+l1+1-l2min])
+				Bulm[l,mm] = 4*pi*(-1)**mm * Bulm[l,mm]
 		if verbose:
 			print float(time.time() - timer)/60
 		return Bulm
@@ -339,25 +331,21 @@ class Visibility_Simulator:
 			print drotate
 
 		#calculate Bulm
-		L1 = max([key for key in self.Blm])[0]
+		L1 = len(self.Blm) - 1
 		Bulm = self.calculate_Bulm(L, freq, drotate ,L1, verbose = verbose)
 		
-		#get the intersect of the component of skymap_alm and self.Blm
-		commoncomp=list(set([key for key in skymap_alm]) & set([key for key in Bulm]))
-		if verbose:
-			print len(commoncomp)
-
 		#calculate visibilities
 		if tlist != None:
 			vlist = np.zeros(len(tlist),'complex128')
 			for i in range(len(tlist)):
 				phi=2*pi/24.0*tlist[i]            #turn t (time in hour) to angle of rotation		
 				v=0
-				for comp in commoncomp:
-					v += np.conjugate(skymap_alm[comp]) * Bulm[comp] * e**(-1.0j*comp[1]*phi)	
+				for l in range(min(len(skymap_alm), len(Bulm))):
+					for mm in range(-l,l+1):
+						v += np.conjugate(skymap_alm[l, mm]) * Bulm[l, mm] * e**(-1.0j*mm*phi)	
 				vlist[i]=v
 		else:
-			lcommon = max(np.array(commoncomp)[:,0])
+			lcommon = min(len(skymap_alm), len(Bulm)) - 1
 			if nt == None:
 				nfourier = 2 * lcommon + 1
 			elif nt < 2 * lcommon + 1: #make sure nfourier is a multiple of nt and bigger than 2 * lcommon + 1
@@ -370,7 +358,7 @@ class Visibility_Simulator:
 			self.cm = np.zeros(nfourier, dtype = 'complex128')
 			for mm in range(-lcommon, lcommon + 1):
 				for l in range(abs(mm), lcommon + 1):
-					self.cm[(mm)%(2*lcommon+1)] += np.conjugate(skymap_alm[(l, mm)]) * Bulm[(l, mm)]
+					self.cm[(mm)%(2*lcommon+1)] += np.conjugate(skymap_alm[(l, mm)]) * Bulm[l,mm]
 			vlist = np.fft.fft(self.cm)
 			if nt < nfourier:
 				vlist = vlist[::(nfourier/nt)]
@@ -387,7 +375,7 @@ def read_alm(filename):
 	lmax = int(len(raw)**0.5) - 1
 	if lmax != len(raw)**0.5 - 1:
 		raise Exception("Invalid array length of %i found in file %s. Array must be of length (l+1)^2."%(len(raw), filename))
-	result = {}
+	result = np.zeros((lmax + 1, 2*lmax + 1),dtype='complex64')
 	cnter = 0
 	for l in range(lmax + 1):
 		for mm in range(-l, l + 1):
@@ -403,7 +391,7 @@ def read_real_alm(filename):
 	lmax = int(m.floor((2*len(raw))**0.5)) - 1
 	if (lmax + 1) * (lmax + 2) / 2 != len(raw):
 		raise Exception("Invalid array length of %i found in file %s. Array must be of length (l+1)(l+2)/2."%(len(raw), filename))
-	result = {}
+	result = np.zeros((lmax + 1, 2*lmax + 1),dtype='complex64')
 	cnter = 0
 	for l in range(lmax + 1):
 		for mm in range(0, l + 1):
@@ -414,7 +402,7 @@ def read_real_alm(filename):
 def convert_healpy_alm(healpyalm, lmax):
 	if len(healpyalm) != (lmax + 1) * (lmax + 2) / 2:
 		raise Exception('Length of input 1D healpy alm (%i) does not match the lmax inputed (%i). Length should be (l+1)(l+2)/2 for a real map alm.'%(len(healpyalm), lmax))
-	result = {}
+	result = np.zeros((lmax + 1, 2*lmax + 1),dtype='complex64')
 	cnter = 0
 	for mm in range(lmax + 1):
 		for l in range(mm, lmax + 1):
@@ -423,10 +411,10 @@ def convert_healpy_alm(healpyalm, lmax):
 	return result
 	
 def expand_real_alm(real_alm):
-	lmax = np.max(np.array(real_alm.keys()))
-	if len(real_alm) != (lmax+1)*(lmax+2)/2:
-		raise Exception('Input real_alm does not look like a real_alm. Max l %i does not agree with length %i of input real_alm.'%(lmax, len(real_alm)))
-	result = {}
+	lmax = len(real_alm) - 1
+	if la.norm(real_alm[:,-lmax:]) != 0:
+		raise Exception('Input real_alm does not look like a real_alm. Second half of each row of input real_alm is not zero.')
+	result = np.zeros((lmax + 1, 2*lmax + 1),dtype='complex64')
 	for l in range(lmax + 1):
 		for mm in range(0, l + 1):
 			result[(l, mm)] = real_alm[(l,mm)]
@@ -438,79 +426,79 @@ def expand_real_alm(real_alm):
 #add in a line to test github
 #add another line
 
-#############################
-##test the class
-#############################
-if __name__ == '__main__':
-	btest=Visibility_Simulator()
-	btest.initial_zenith=np.array([45.336111/180.0*pi,0])
-	#Import the healpix map of the beam, then calculate the Blm of the beam
-	with open('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/beamhealpix/beamhealpixmap.txt') as f:
-		data = np.array([np.array([float(line)]) for line in f])
+##############################
+###test the class
+##############################
+#if __name__ == '__main__':
+	#btest=Visibility_Simulator()
+	#btest.initial_zenith=np.array([45.336111/180.0*pi,0])
+	##Import the healpix map of the beam, then calculate the Blm of the beam
+	#with open('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/beamhealpix/beamhealpixmap.txt') as f:
+		#data = np.array([np.array([float(line)]) for line in f])
 
-	data = data.flatten()
-	beam_alm = hp.sphtfunc.map2alm(data,iter=10)
+	#data = data.flatten()
+	#beam_alm = hp.sphtfunc.map2alm(data,iter=10)
 
-	Blm={}
-	for l in range(21):
-		for mm in range(-l,l+1):
-			if mm >= 0:
-				Blm[(l,mm)] = (1.0j)**mm*beam_alm[hp.sphtfunc.Alm.getidx(10,l,abs(mm))]
-			if mm < 0:
-				Blm[(l,mm)] = np.conj((1.0j)**mm*beam_alm[hp.sphtfunc.Alm.getidx(10,l,abs(mm))])
+	#Blm={}
+	#for l in range(21):
+		#for mm in range(-l,l+1):
+			#if mm >= 0:
+				#Blm[(l,mm)] = (1.0j)**mm*beam_alm[hp.sphtfunc.Alm.getidx(10,l,abs(mm))]
+			#if mm < 0:
+				#Blm[(l,mm)] = np.conj((1.0j)**mm*beam_alm[hp.sphtfunc.Alm.getidx(10,l,abs(mm))])
 				
-	btest.Blm=Blm
+	#btest.Blm=Blm
 
 
-						   #_       
-	  #__ _ ____ __    __ _| |_ __  
-	 #/ _` (_-< '  \  / _` | | '  \ 
-	 #\__, /__/_|_|_| \__,_|_|_|_|_|
-	 #|___/                         
-	#create sky map alm
-	pca1 = hp.fitsfunc.read_map('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/GSM_32/gsm1.fits32')
-	pca2 = hp.fitsfunc.read_map('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/GSM_32/gsm2.fits32')
-	pca3 = hp.fitsfunc.read_map('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/GSM_32/gsm3.fits32')
-	gsm = 422.952*(0.307706*pca1+-0.281772*pca2+0.0123976*pca3)
+						   ##_       
+	  ##__ _ ____ __    __ _| |_ __  
+	 ##/ _` (_-< '  \  / _` | | '  \ 
+	 ##\__, /__/_|_|_| \__,_|_|_|_|_|
+	 ##|___/                         
+	##create sky map alm
+	#pca1 = hp.fitsfunc.read_map('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/GSM_32/gsm1.fits32')
+	#pca2 = hp.fitsfunc.read_map('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/GSM_32/gsm2.fits32')
+	#pca3 = hp.fitsfunc.read_map('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/GSM_32/gsm3.fits32')
+	#gsm = 422.952*(0.307706*pca1+-0.281772*pca2+0.0123976*pca3)
 
-	nside=32
-	equatorial_GSM = np.zeros(12*nside**2,'float')
-	#rotate sky map
-	for i in range(12*nside**2):
-		ang = hp.rotator.Rotator(coord='cg')(hpf.pix2ang(nside,i)) 
-		pixindex, weight = hpf.get_neighbours(nside,ang[0],ang[1])
-		for pix in range(len(pixindex)):
-			equatorial_GSM[i] += weight[pix]*gsm[pixindex[pix]]
+	#nside=32
+	#equatorial_GSM = np.zeros(12*nside**2,'float')
+	##rotate sky map
+	#for i in range(12*nside**2):
+		#ang = hp.rotator.Rotator(coord='cg')(hpf.pix2ang(nside,i)) 
+		#pixindex, weight = hpf.get_neighbours(nside,ang[0],ang[1])
+		#for pix in range(len(pixindex)):
+			#equatorial_GSM[i] += weight[pix]*gsm[pixindex[pix]]
 			
-	almlist = hp.sphtfunc.map2alm(equatorial_GSM,iter=10)
-	alm={}
-	for l in range(96):
-		for mm in range(-l,l+1):
-			if mm >= 0:
-				alm[(l,mm)] = (1.0j)**mm*almlist[hp.sphtfunc.Alm.getidx(nside*3-1,l,abs(mm))]
-			if mm < 0:
-				alm[(l,mm)] = np.conj((1.0j)**mm*almlist[hp.sphtfunc.Alm.getidx(nside*3-1,l,abs(mm))])
+	#almlist = hp.sphtfunc.map2alm(equatorial_GSM,iter=10)
+	#alm={}
+	#for l in range(96):
+		#for mm in range(-l,l+1):
+			#if mm >= 0:
+				#alm[(l,mm)] = (1.0j)**mm*almlist[hp.sphtfunc.Alm.getidx(nside*3-1,l,abs(mm))]
+			#if mm < 0:
+				#alm[(l,mm)] = np.conj((1.0j)**mm*almlist[hp.sphtfunc.Alm.getidx(nside*3-1,l,abs(mm))])
 
 
-	#set frequency and baseline vector
-	freq = 125.195
-	d=np.array([-6.0,-3.0,0.0])
+	##set frequency and baseline vector
+	#freq = 125.195
+	#d=np.array([-6.0,-3.0,0.0])
 
-	timelist = 1/10.0*np.arange(24*10+1)
-	v2 = btest.calculate_visibility(alm, d, freq, timelist)
-	print v2
+	#timelist = 1/10.0*np.arange(24*10+1)
+	#v2 = btest.calculate_visibility(alm, d, freq, timelist)
+	#print v2
 
-	savelist = np.zeros([len(timelist),3],'float')
-	for i in range(len(timelist)):
-		savelist[i][0] = timelist[i]
-		savelist[i][1] = v2[i].real
-		savelist[i][2] = v2[i].imag
+	#savelist = np.zeros([len(timelist),3],'float')
+	#for i in range(len(timelist)):
+		#savelist[i][0] = timelist[i]
+		#savelist[i][1] = v2[i].real
+		#savelist[i][2] = v2[i].imag
 
 
-	f_handle = open('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/visibility_result/sphericalharmonics_L20.txt','w')
-	for i in savelist:
-		np.savetxt(f_handle, [i])
-	f_handle.close()
+	#f_handle = open('/home/eric/Dropbox/MIT/UROP/simulate_visibilities/visibility_result/sphericalharmonics_L20.txt','w')
+	#for i in savelist:
+		#np.savetxt(f_handle, [i])
+	#f_handle.close()
 
 
 	##############################

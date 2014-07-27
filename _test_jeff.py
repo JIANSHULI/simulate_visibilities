@@ -39,14 +39,12 @@ class TestMethods(unittest.TestCase):
         #print self.alm[(0,0)], self.alm[(1,1)]
     def test_alm(self):
         correct_alm = sv.convert_healpy_alm(np.fromfile(self.test_dir + 'datapoint_source_420_752_n16_alm47.bin', dtype='complex64'), 3 * 16 - 1)
+        np.testing.assert_almost_equal(self.alm, correct_alm)
 
-        for key in self.alm.keys():
-            self.assertEqual(self.alm[key].astype('complex64'), correct_alm[key])
     def test_BB(self):
         timer = time.time()
         self.BB = self.vs.calculate_Bulm(L=3*self.nside-1,freq=self.freq,d=self.blvequ,L1=self.blmax)
         print "BB time: %f"%(float(time.time() - timer)/60)
-        self.assertEqual(len(self.correct_BB), len(self.BB))
         #self.assertEqual(self.correct_BB, self.BB)
         for l in range(3*self.nside):
             for mm in range(-l, l + 1):
@@ -57,6 +55,7 @@ class TestMethods(unittest.TestCase):
                 except:
                     print l, mm, self.correct_BB[(l,mm)], self.BB[(l,mm)]
                     self.assertAlmostEqual(la.norm((self.correct_BB[(l,mm)] - self.BB[(l,mm)])/self.correct_BB[(l,mm)]), 0, 2)
+
     def test_visibility(self):
         self.result = self.vs.calculate_visibility(sv.expand_real_alm(self.alm), d=np.array([0,3,0]), freq=self.freq, tlist=np.arange(0,24,24./(6*self.nside-1)), L = 3*self.nside-1, verbose = False)
         #plt.plot(np.real(self.result), 'r--', np.real(self.correct_result), 'bs', np.imag(self.result), 'r--', np.imag(self.correct_result), 'bs')
