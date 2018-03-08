@@ -19,7 +19,7 @@ import scipy.interpolate as si
 import glob
 import astropy
 from astropy.io import fits
-
+import HERA_MapMaking_VisibilitySimulation as mmvs
 from pyuvdata import UVData, UVCal, UVFITS
 import hera_cal as hc
 from hera_cal.data import DATA_PATH
@@ -353,11 +353,8 @@ elif INSTRUMENT == 'hera47':
 	PointSource_AbsCal = True
 	
 	Use_AbsCal = True # Use Model calculated noise which is just fullsim autocorr calculated noise.
-<<<<<<< HEAD
 	Use_PsAbsCal = True # higher priority over Use_AbsCal and Use_Fullsim_Noise. if comply_ps2mod_autocorr then become just fullsim autocorr calculated noise.
-=======
 	Use_PsAbsCal = False # higher priority over Use_AbsCal and Use_Fullsim_Noise. if comply_ps2mod_autocorr then become just fullsim autocorr calculated noise.
->>>>>>> 10f63a0c6d05e4e24e9a945811f0155e50e5480e
 	comply_ps2mod_autocorr = False
 	Use_Fullsim_Noise = False # Use fullsim autocorr calculated noise.
 	
@@ -727,8 +724,8 @@ elif INSTRUMENT == 'hera47':
 	vis_data_dred_mfreq = [[],[]]
 	
 	for i in range(2):
-		Ubl_list_raw[i] = np.array(omnical.arrayinfo.compute_reds_total(antloc[i])) ## Note that a new function has been added into omnical.arrayinfo as "compute_reds_total" which include all ubls not only redundant ones.
-	#Ubl_list_raw[1] = np.array(omnical.arrayinfo.compute_reds_total(antloc_yy)) ## Note that a new function has been added into omnical.arrayinfo as "compute_reds_total" which include all ubls not only redundant ones.
+		Ubl_list_raw[i] = np.array(mmvs.arrayinfo.compute_reds_total(antloc[i])) ## Note that a new function has been added into omnical.arrayinfo as "compute_reds_total" which include all ubls not only redundant ones.
+	#Ubl_list_raw[1] = np.array(mmvs.arrayinfo.compute_reds_total(antloc_yy)) ## Note that a new function has been added into omnical.arrayinfo as "compute_reds_total" which include all ubls not only redundant ones.
 		ant_pos[i] = antpos[i]
 	#ant_pos[1] = antpos_yy
 	for i in range(2):
@@ -3310,13 +3307,8 @@ if plot_data_error:
 	best_fit.shape = (2, data_shape['xx'][0], 2, data_shape['xx'][1])
 	best_fit_no_additive.shape = (2, data_shape['xx'][0], 2, data_shape['xx'][1])
 	sim_best_fit.shape = (2, data_shape['xx'][0], 2, data_shape['xx'][1])
-<<<<<<< HEAD
 	ri = 1
-	# plt.clf()
-=======
 
-	ri = 1
->>>>>>> 10f63a0c6d05e4e24e9a945811f0155e50e5480e
 
 	figure_W = {}
 	for p in range(2):
@@ -3371,10 +3363,7 @@ if plot_data_error:
 # 	except:
 # 		pass
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 10f63a0c6d05e4e24e9a945811f0155e50e5480e
 sys.stdout.flush()
 
 def plot_IQU(solution, title, col, shape=(2,3), coord='C'):
