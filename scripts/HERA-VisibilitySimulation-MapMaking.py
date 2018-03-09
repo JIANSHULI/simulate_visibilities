@@ -1946,29 +1946,67 @@ flux_func = {}
 flux_func['cas'] = si.interp1d(flist[0], np.array([S_casa_v_t(flist[0][i], DecimalYear) for i in range(len(flist[0]))]))
 flux_func['cyg'] = si.interp1d(flist[0], np.array([S_cyga_v(flist[0][i], DecimalYear) for i in range(len(flist[0]))]))
 
+flux_raw_gsm_ps = {}
+flux_gsm_ps = {}
+flux_raw_dis_gsm_ps = {}
+flux_dis_gsm_ps = {}
+pix_index_gsm_ps = {}
+pix_raw_index_gsm_ps = {}
+pix_max_index_gsm_ps = {}
+pt_sources = southern_points.keys()
+for source in pt_sources:
+	flux_raw_gsm_ps[source] = 0
+	flux_gsm_ps[source] = 0
+	flux_raw_dis_gsm_ps[source] = []
+	flux_dis_gsm_ps[source] = []
+	pix_raw_index_gsm_ps[source] = []
+	pix_index_gsm_ps[source] = []
+	# pix_max_index_gsm_ps[source] = []
+	for i in range(len(equatorial_GSM_standard)):
+		if la.norm(np.array([full_phis[i] - southern_points[source]['body']._ra,
+		                     (PI / 2 - full_thetas[i]) - southern_points[source]['body']._dec])) <= 0.1:
+			flux_raw_gsm_ps[source] += equatorial_GSM_standard[i]
+			flux_raw_dis_gsm_ps[source].append(equatorial_GSM_standard[i])
+			pix_raw_index_gsm_ps[source].append(i)
+	
+	pix_max_index_gsm_ps[source] = pix_raw_index_gsm_ps[source][flux_raw_dis_gsm_ps[source].index(np.array(flux_raw_dis_gsm_ps[source]).max())]
+	for j in range(len(flux_raw_dis_gsm_ps[source])):
+		if flux_raw_dis_gsm_ps[source][j] >= 0.45 * equatorial_GSM_standard[pix_max_index_gsm_ps[source]]:
+			flux_gsm_ps[source] += equatorial_GSM_standard[pix_raw_index_gsm_ps[source][j]]
+			flux_dis_gsm_ps[source].append(equatorial_GSM_standard[pix_raw_index_gsm_ps[source][j]])
+			pix_index_gsm_ps[source].append(pix_raw_index_gsm_ps[source][j])
+	
+	print('total flux of %s' % source, flux_gsm_ps[source])
+	print('total raw flux of %s' % source, flux_raw_gsm_ps[source])
+	print('maximum pix flux of %s' % source, equatorial_GSM_standard[pix_max_index_gsm_ps[source]])
+	print('pix-index with maximum flux of %s' % source, pix_max_index_gsm_ps[source])
+	print('raw-pix-indexes of %s' % source, pix_raw_index_gsm_ps[source])
+	print('pix-indexes of %s' % source, pix_index_gsm_ps[source])
+	print('\n')
 
-pt_sources = ['cyg', 'cas']
+# pt_sources = ['cyg', 'cas']
+pt_sources = southern_points.keys()
 pt_vis = np.zeros((len(pt_sources), 2, nUBL_used, nt_used), dtype='complex128')
 if INSTRUMENT == 'miteor':
-	print "Simulating cyg casvisibilities, %s, expected time %.1f min"%(datetime.datetime.now(), 14.6 * (nUBL_used / 78.) * (nt_used / 193.) * (2. / 1.4e5)),
+	print "Simulating cyg casvisibilities, %s, expected time %.1f min" % (datetime.datetime.now(), 14.6 * (nUBL_used / 78.) * (nt_used / 193.) * (2. / 1.4e5)),
 	sys.stdout.flush()
 	timer = time.time()
 	for p, beam_heal_equ in enumerate([beam_heal_equ_x, beam_heal_equ_y]):
 		for i, source in enumerate(pt_sources):
 			ra = southern_points[source]['body']._ra
 			dec = southern_points[source]['body']._dec
-			pt_vis[i, p] = jansky2kelvin * flux_func[source](freq) * vs.calculate_pointsource_visibility(ra, dec, used_common_ubls, freq, beam_heal_equ=beam_heal_equ, tlist=lsts) / 2
+			# 			pt_vis[i, p] = jansky2kelvin * flux_func[source](freq) * vs.calculate_pointsource_visibility(ra, dec, used_common_ubls, freq, beam_heal_equ=beam_heal_equ, tlist=lsts) / 2
+			pt_vis[i, p] = flux_gsm_ps[source] * vs.calculate_pointsource_visibility(ra, dec, used_common_ubls, freq, beam_heal_equ=beam_heal_equ, tlist=lsts) / 2
 elif INSTRUMENT == 'hera47':
-	print "Simulating cyg casvisibilities, %s, expected time %.1f min"%(datetime.datetime.now(), 14.6 * (nUBL_used / 78.) * (nt_used / 193.) * (2. / 1.4e5)),
+	print "Simulating cyg casvisibilities, %s, expected time %.1f min" % (datetime.datetime.now(), 14.6 * (nUBL_used / 78.) * (nt_used / 193.) * (2. / 1.4e5)),
 	sys.stdout.flush()
 	timer = time.time()
 	for p, beam_heal_equ in enumerate([beam_heal_equ_x, beam_heal_equ_y]):
 		for i, source in enumerate(pt_sources):
 			ra = southern_points[source]['body']._ra
 			dec = southern_points[source]['body']._dec
-			pt_vis[i, p] = jansky2kelvin * flux_func[source](freq) * vs.calculate_pointsource_visibility(ra, dec, used_common_ubls, freq, beam_heal_equ=beam_heal_equ, tlist=lsts) / 2
-
-
+			# 			pt_vis[i, p] = jansky2kelvin * flux_func[source](freq) * vs.calculate_pointsource_visibility(ra, dec, used_common_ubls, freq, beam_heal_equ=beam_heal_equ, tlist=lsts) / 2
+			pt_vis[i, p] = flux_gsm_ps[source] * vs.calculate_pointsource_visibility(ra, dec, used_common_ubls, freq, beam_heal_equ=beam_heal_equ, tlist=lsts) / 2
 
 if PointSource_AbsCal:
 	vis_freq = {}
@@ -1977,18 +2015,21 @@ if PointSource_AbsCal:
 	vis_data_dred_mfreq_pscal = {}
 	
 	for j, p in enumerate(['x', 'y']):
-		pol = p+p
+		pol = p + p
 		vis_data_dred_mfreq_pscal[j] = np.zeros_like(vis_data_dred_mfreq_abscal[j])
 		autocorr_data_dred_mfreq_pscal[j] = np.zeros_like(autocorr_data_dred_mfreq_abscal[j])
 	
 	for id_f in range(len(flist[0])):
 		vis_freq[0] = flist[0][id_f]
 		vis_freq[1] = flist[1][id_f]
-		cal_lst_range = np.array([5, 6]) / TPI * 24.
-		calibrate_ubl_length = 1600 / np.mean([vis_freq[0], vis_freq[1]]) #10.67
-		cal_time_mask = tmask	 #(tlist>cal_lst_range[0]) & (tlist<cal_lst_range[1])#a True/False mask on all good data to get good data in cal time range
-		#cal_ubl_mask = {}
+		# cal_lst_range = np.array([5, 6]) / TPI * 24.
+		cal_lst_range = np.array([tlist[15], tlist[-15]])
+		calibrate_ubl_length = 2600 / np.mean([vis_freq[0], vis_freq[1]])  # 10.67
+		# cal_time_mask = tmask	 #(tlist>cal_lst_range[0]) & (tlist<cal_lst_range[1])#a True/False mask on all good data to get good data in cal time range
+		cal_time_mask = (tlist > cal_lst_range[0]) & (tlist < cal_lst_range[1])
+		# cal_ubl_mask = np.linalg.norm(ubls[p], axis=1) >= calibrate_ubl_length
 		
+		print('%i times used' % len(lsts[cal_time_mask]))
 		
 		Ni = {}
 		cubls = copy.deepcopy(ubls)
@@ -2000,94 +2041,99 @@ if PointSource_AbsCal:
 		From_AbsCal = False
 		
 		for i, p in enumerate(['x', 'y']):
-			pol = p+p
+			pol = p + p
 			cal_ubl_mask = np.linalg.norm(ubls[p], axis=1) >= calibrate_ubl_length
-			#get Ni (1/variance) and data
-			#var_filename = datadir + tag + '_%s%s_%i_%i%s.var'%(p, p, nt, nUBL, vartag)
-			#noise_data_pscal['y'] = np.array([(np.random.normal(0,autocorr_data[1][t_index]/(Integration_Time*Frequency_Bin)**0.5,nUBL_used) ) for t_index in range(len(autocorr_data[1]))],dtype='complex128').flatten()
+			# get Ni (1/variance) and data
+			# var_filename = datadir + tag + '_%s%s_%i_%i%s.var'%(p, p, nt, nUBL, vartag)
+			# noise_data_pscal['y'] = np.array([(np.random.normal(0,autocorr_data[1][t_index]/(Integration_Time*Frequency_Bin)**0.5,nUBL_used) ) for t_index in range(len(autocorr_data[1]))],dtype='complex128').flatten()
 			
 			if From_AbsCal:
 				vis_data_dred_pscal[i] = vis_data_dred_mfreq_abscal[i][id_f][np.ix_(cal_time_mask, cal_ubl_mask)].transpose()
-				noise_data_pscal[p] = np.array([(np.random.normal(0,autocorr_data_dred_mfreq_abscal[i][t_index, id_f]/(Integration_Time*Frequency_Bin)**0.5, nUBL) ) for t_index in range(len(autocorr_data[i]))],dtype='complex128').flatten() # Absolute Calibrated
+				noise_data_pscal[p] = np.array([(np.random.normal(0, autocorr_data_dred_mfreq_abscal[i][t_index, id_f] / (Integration_Time * Frequency_Bin) ** 0.5, nUBL) / np.array(redundancy[0]) ** 0.5) for t_index in range(len(autocorr_data[i]))], dtype='complex128').flatten()  # Absolute Calibrated
 			else:
 				vis_data_dred_pscal[i] = vis_data_dred_mfreq[i][id_f][np.ix_(cal_time_mask, cal_ubl_mask)].transpose()
-				noise_data_pscal[p] = np.array([(np.random.normal(0,autocorr_data_mfreq[i][t_index, id_f]/(Integration_Time*Frequency_Bin)**0.5, nUBL) ) for t_index in range(len(autocorr_data[i]))],dtype='complex128').flatten() # Absolute Calibrated
-				
+				noise_data_pscal[p] = np.array([(np.random.normal(0, autocorr_data_mfreq[i][t_index, id_f] / (Integration_Time * Frequency_Bin) ** 0.5, nUBL) / np.array(redundancy[0]) ** 0.5) for t_index in range(len(autocorr_data[i]))], dtype='complex128').flatten()  # Absolute Calibrated
+			
 			N_data_pscal[p] = noise_data_pscal[p] * noise_data_pscal[p]
-			#N_data_pscal['y'] = noise_data_pscal['y'] * noise_data_pscal['y']
-			Ni[p] = 1./N_data_pscal[p].reshape((nt, nUBL))[np.ix_(cal_time_mask, cal_ubl_mask)].transpose()
+			# N_data_pscal[p] = N_data[p]
+			# N_data_pscal['y'] = noise_data_pscal['y'] * noise_data_pscal['y']
+			Ni[p] = 1. / N_data_pscal[p].reshape((nt, nUBL))[np.ix_(cal_time_mask, cal_ubl_mask)].transpose()
 			ubls[p] = ubls[p][cal_ubl_mask]
 			ubl_sort[p] = np.argsort(la.norm(ubls[p], axis=1))
-
-			print "%i UBLs to include"%len(ubls[p])
+			
+			print "%i UBLs to include" % len(ubls[p])
 		
-		del(noise_data_pscal)
+		del (noise_data_pscal)
 		
 		print "Computing UNpolarized point sources matrix..."
 		sys.stdout.flush()
-		cal_sources = ['cyg', 'cas']
+		# cal_sources = ['cyg', 'cas']
+		cal_sources = southern_points.keys()
 		Apol = np.empty((np.sum(cal_ubl_mask), 2, np.sum(cal_time_mask), len(cal_sources)), dtype='complex128')
 		timer = time.time()
 		for n, source in enumerate(cal_sources):
 			ra = southern_points[source]['body']._ra
 			dec = southern_points[source]['body']._dec
-
+			
 			Apol[:, 0, :, n] = vs.calculate_pointsource_visibility(ra, dec, ubls[p], vis_freq[0], beam_heal_equ=beam_heal_equ_x_mfreq[id_f], tlist=lsts[cal_time_mask])
 			Apol[:, 1, :, n] = vs.calculate_pointsource_visibility(ra, dec, ubls[p], vis_freq[1], beam_heal_equ=beam_heal_equ_y_mfreq[id_f], tlist=lsts[cal_time_mask])
-
+		
 		Apol = np.conjugate(Apol).reshape((np.sum(cal_ubl_mask), 2 * np.sum(cal_time_mask), len(cal_sources)))
 		Ni = np.transpose([Ni['x'], Ni['y']], (1, 0, 2))
-
+		
 		realA = np.zeros((2 * Apol.shape[0] * Apol.shape[1], 1 + 2 * np.sum(cal_ubl_mask) * 2), dtype='complex128')
-		realA[:, 0] = np.concatenate((np.real(Apol.reshape((Apol.shape[0] * Apol.shape[1], Apol.shape[2]))), np.imag(Apol.reshape((Apol.shape[0] * Apol.shape[1], Apol.shape[2])))), axis=0).dot([flux_func[source](vis_freq[cal_sources.index(source)]) for source in cal_sources])
-		vis_scale = la.norm(realA[:, 0]) / len(realA)**.5
+		# 		realA[:, 0] = np.concatenate((np.real(Apol.reshape((Apol.shape[0] * Apol.shape[1], Apol.shape[2]))), np.imag(Apol.reshape((Apol.shape[0] * Apol.shape[1], Apol.shape[2])))), axis=0).dot([jansky2kelvin_mfreq[0][id_f] * flux_func[source](vis_freq[0]) for source in cal_sources])
+		realA[:, 0] = np.concatenate((np.real(Apol.reshape((Apol.shape[0] * Apol.shape[1], Apol.shape[2]))), np.imag(Apol.reshape((Apol.shape[0] * Apol.shape[1], Apol.shape[2])))), axis=0).dot([flux_gsm_ps[source] for source in cal_sources])
+		vis_scale = la.norm(realA[:, 0]) / len(realA) ** .5
 		for coli, ncol in enumerate(range(1, realA.shape[1])):
 			realA[coli * np.sum(cal_time_mask): (coli + 1) * np.sum(cal_time_mask), ncol] = vis_scale
-
+		
 		realNi = np.concatenate((Ni.flatten() * 2, Ni.flatten() * 2))
 		realAtNiAinv = np.linalg.pinv(np.einsum('ji,j,jk->ik', realA, realNi, realA))
-
-
+		
 		b = np.transpose([vis_data_dred_pscal[0], vis_data_dred_pscal[1]], (1, 0, 2))
 		phase_degen_niter = 0
 		phase_degen2 = {'x': np.zeros(2), 'y': np.zeros(2)}
 		phase_degen_iterative_x = np.zeros(2)
 		phase_degen_iterative_y = np.zeros(2)
+		
+		
 		def tocomplex(realdata):
 			reshapedata = realdata.reshape((2, np.sum(cal_ubl_mask), 2, np.sum(cal_time_mask)))
 			return reshapedata[0] + reshapedata[1] * 1.j
-
+		
+		
 		phase_degen_niter_max = 100
 		while (phase_degen_niter < phase_degen_niter_max and max(np.linalg.norm(phase_degen_iterative_x), np.linalg.norm(phase_degen_iterative_y)) > 1e-5) or phase_degen_niter == 0:
 			phase_degen_niter += 1
 			b[:, 0] = b[:, 0] * np.exp(1.j * ubls['x'][:, :2].dot(phase_degen_iterative_x))[:, None]
 			b[:, -1] = b[:, -1] * np.exp(1.j * ubls['y'][:, :2].dot(phase_degen_iterative_y))[:, None]
 			realb = np.concatenate((np.real(b.flatten()), np.imag(b.flatten())))
-
+			
 			psol = realAtNiAinv.dot(np.transpose(realA).dot(realNi * realb))
 			realb_fit = realA.dot(psol)
-			perror = ((realb_fit - realb) * (realNi**.5)).reshape((2, np.sum(cal_ubl_mask), 2, np.sum(cal_time_mask)))
-
+			perror = ((realb_fit - realb) * (realNi ** .5)).reshape((2, np.sum(cal_ubl_mask), 2, np.sum(cal_time_mask)))
+			
 			realbfit_noadditive = realA[:, 0] * psol[0]
 			realbfit_additive = realb_fit - realbfit_noadditive
 			realb_noadditive = realb - realbfit_additive
 			bfit_noadditive = tocomplex(realbfit_noadditive)
 			b_noadditive = tocomplex(realb_noadditive)
 			if phase_degen_niter == phase_degen_niter_max:
-				phase_degen_iterative_x = solve_phase_degen(np.transpose(b_noadditive[:, 0]), np.transpose(b_noadditive[:, 0]), np.transpose(bfit_noadditive[:, 0]), np.transpose(bfit_noadditive[:, 0]), ubls['x'])#, [3, 3, 1e3])
-				phase_degen_iterative_y = solve_phase_degen(np.transpose(b_noadditive[:, -1]), np.transpose(b_noadditive[:, -1]), np.transpose(bfit_noadditive[:, -1]), np.transpose(bfit_noadditive[:, -1]), ubls['y'])#, [3, 3, 1e3])
-
+				phase_degen_iterative_x = solve_phase_degen(np.transpose(b_noadditive[:, 0]), np.transpose(b_noadditive[:, 0]), np.transpose(bfit_noadditive[:, 0]), np.transpose(bfit_noadditive[:, 0]), ubls['x'])  # , [3, 3, 1e3])
+				phase_degen_iterative_y = solve_phase_degen(np.transpose(b_noadditive[:, -1]), np.transpose(b_noadditive[:, -1]), np.transpose(bfit_noadditive[:, -1]), np.transpose(bfit_noadditive[:, -1]), ubls['y'])  # , [3, 3, 1e3])
+			
 			else:
 				phase_degen_iterative_x = solve_phase_degen(np.transpose(b_noadditive[:, 0]), np.transpose(b_noadditive[:, 0]), np.transpose(bfit_noadditive[:, 0]), np.transpose(bfit_noadditive[:, 0]), ubls['x'])
 				phase_degen_iterative_y = solve_phase_degen(np.transpose(b_noadditive[:, -1]), np.transpose(b_noadditive[:, -1]), np.transpose(bfit_noadditive[:, -1]), np.transpose(bfit_noadditive[:, -1]), ubls['y'])
 			phase_degen2['x'] += phase_degen_iterative_x
 			phase_degen2['y'] += phase_degen_iterative_y
 			print phase_degen_niter, phase_degen2['x'], phase_degen2['y'], np.linalg.norm(perror)
-
+		
 		renorm = 1 / (2 * psol[0])
-
-		print (renorm, vis_freq[0],  phase_degen2['x'], vis_freq[1], phase_degen2['y'])
-
+		
+		print (renorm, vis_freq[0], phase_degen2['x'], vis_freq[1], phase_degen2['y'])
+		
 		#freqs[fi] = vis_freq
 
 		################################# apply to data and var and output unpolarized version ####################################
