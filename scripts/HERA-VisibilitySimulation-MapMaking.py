@@ -2031,6 +2031,44 @@ if PointSource_AbsCal:
 		
 		print('%i times used' % len(lsts[cal_time_mask]))
 		
+		flux_raw_gsm_ps = {}
+		flux_gsm_ps = {}
+		flux_raw_dis_gsm_ps = {}
+		flux_dis_gsm_ps = {}
+		pix_index_gsm_ps = {}
+		pix_raw_index_gsm_ps = {}
+		pix_max_index_gsm_ps = {}
+		pt_sources = southern_points.keys()
+		for source in pt_sources:
+			flux_raw_gsm_ps[source] = 0
+			flux_gsm_ps[source] = 0
+			flux_raw_dis_gsm_ps[source] = []
+			flux_dis_gsm_ps[source] = []
+			pix_raw_index_gsm_ps[source] = []
+			pix_index_gsm_ps[source] = []
+			#pix_max_index_gsm_ps[source] = []
+			for i in range(len(equatorial_GSM_standard_mfreq[id_f])):
+				if la.norm(np.array([full_phis[i] - southern_points[source]['body']._ra,
+									   (PI / 2 - full_thetas[i]) - southern_points[source]['body']._dec])) <= 0.1:
+					flux_raw_gsm_ps[source] += equatorial_GSM_standard_mfreq[id_f, i]
+					flux_raw_dis_gsm_ps[source].append(equatorial_GSM_standard_mfreq[id_f, i])
+					pix_raw_index_gsm_ps[source].append(i)
+
+			pix_max_index_gsm_ps[source] = pix_raw_index_gsm_ps[source][flux_raw_dis_gsm_ps[source].index(np.array(flux_raw_dis_gsm_ps[source]).max())]
+			for j in range(len(flux_raw_dis_gsm_ps[source])):
+				if flux_raw_dis_gsm_ps[source][j] >= 0.4 * equatorial_GSM_standard_mfreq[id_f, pix_max_index_gsm_ps[source]]:
+					flux_gsm_ps[source] += equatorial_GSM_standard_mfreq[id_f, pix_raw_index_gsm_ps[source][j]]
+					flux_dis_gsm_ps[source].append(equatorial_GSM_standard_mfreq[id_f, pix_raw_index_gsm_ps[source][j]])
+					pix_index_gsm_ps[source].append(pix_raw_index_gsm_ps[source][j])
+
+			print('total flux of %s'%source, flux_gsm_ps[source])
+			print('total raw flux of %s'%source, flux_raw_gsm_ps[source])
+			print('maximum pix flux of %s'%source, equatorial_GSM_standard_mfreq[id_f, pix_max_index_gsm_ps[source]])
+			print('pix-index with maximum flux of %s'%source, pix_max_index_gsm_ps[source])
+			print('raw-pix-indexes of %s'%source, pix_raw_index_gsm_ps[source])
+			print('pix-indexes of %s'%source, pix_index_gsm_ps[source])
+			print('\n')
+		
 		Ni = {}
 		cubls = copy.deepcopy(ubls)
 		ubl_sort = {}
