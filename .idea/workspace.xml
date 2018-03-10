@@ -16,21 +16,21 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="HERA-VisibilitySimulation-MapMaking.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="HERA-VisibilitySimulation-MapMaking.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/scripts/HERA-VisibilitySimulation-MapMaking.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-168">
+            <state relative-caret-position="772">
               <caret line="1973" column="48" lean-forward="false" selection-start-line="1973" selection-start-column="48" selection-end-line="1973" selection-end-column="48" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="HERA-VisibilitySimulation-MapMaking.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="HERA-VisibilitySimulation-MapMaking.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../HERA_MapMaking_VisibilitySimulation/scripts/HERA-VisibilitySimulation-MapMaking.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1375">
-              <caret line="2034" column="8" lean-forward="true" selection-start-line="2034" selection-start-column="8" selection-end-line="2034" selection-end-column="8" />
+            <state relative-caret-position="939">
+              <caret line="1937" column="48" lean-forward="false" selection-start-line="1937" selection-start-column="48" selection-end-line="1937" selection-end-column="48" />
               <folding />
             </state>
           </provider>
@@ -57,8 +57,8 @@
         <option value="$PROJECT_DIR$/../omnical/setup.py" />
         <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/../HERA_MapMaking_VisibilitySimulation/setup.py" />
-        <option value="$PROJECT_DIR$/scripts/HERA-VisibilitySimulation-MapMaking.py" />
         <option value="$PROJECT_DIR$/../HERA_MapMaking_VisibilitySimulation/scripts/HERA-VisibilitySimulation-MapMaking.py" />
+        <option value="$PROJECT_DIR$/scripts/HERA-VisibilitySimulation-MapMaking.py" />
       </list>
     </option>
   </component>
@@ -511,18 +511,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/HERA-VisibilitySimulation-MapMaking.py">
+    <entry file="file://$PROJECT_DIR$/../HERA_MapMaking_VisibilitySimulation/scripts/HERA-VisibilitySimulation-MapMaking.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-168">
-          <caret line="1973" column="48" lean-forward="false" selection-start-line="1973" selection-start-column="48" selection-end-line="1973" selection-end-column="48" />
+        <state relative-caret-position="939">
+          <caret line="1937" column="48" lean-forward="false" selection-start-line="1937" selection-start-column="48" selection-end-line="1937" selection-end-column="48" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../HERA_MapMaking_VisibilitySimulation/scripts/HERA-VisibilitySimulation-MapMaking.py">
+    <entry file="file://$PROJECT_DIR$/scripts/HERA-VisibilitySimulation-MapMaking.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1375">
-          <caret line="2034" column="8" lean-forward="true" selection-start-line="2034" selection-start-column="8" selection-end-line="2034" selection-end-column="8" />
+        <state relative-caret-position="772">
+          <caret line="1973" column="48" lean-forward="false" selection-start-line="1973" selection-start-column="48" selection-end-line="1973" selection-end-column="48" />
           <folding />
         </state>
       </provider>
